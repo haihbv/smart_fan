@@ -12,67 +12,23 @@
 #include "ir.h"
 #include "motor.h"
 
-/**
- * @brief Đối tượng điều khiển giao tiếp WebSocket MCP.
- */
+/*************************************************************************
+ * STATIC VARIABLES AND FUNCTIONS
+ *************************************************************************/
 static WebSocketMCP mcpClient;
-
-/**
- * @brief Hàng đợi lệnh điều khiển động cơ.
- */
 static QueueHandle_t motorCmdQueue = nullptr;
-
-/**
- * @brief Hàng đợi lệnh điều khiển hồng ngoại.
- */
 static QueueHandle_t irCmdQueue = nullptr;
-
-/**
- * @brief Handle của các task để theo dõi stack.
- */
 static TaskHandle_t mcpTaskHandle = nullptr;
 static TaskHandle_t motorTaskHandle = nullptr;
 static TaskHandle_t irTaskHandle = nullptr;
-
-/**
- * @brief Trạng thái đăng ký công cụ MCP.
- */
 static bool mcpToolsRegistered = false;
-
-/**
- * @brief Trạng thái kết nối MCP hiện tại.
- */
 static bool mcpConnected = false;
-
-/**
- * @brief Thời điểm cuối MCP còn kết nối tốt.
- */
-static TickType_t lastMcpOkTick = 0;
-
-/**
- * @brief Trạng thái nguồn quạt hồng ngoại.
- */
+static TickType_t lastMcpOkTick = 0; // Thời điểm cuối MCP còn kết nối tốt.
 static bool fanPowerOn = false;
-
-/**
- * @brief Hàm đăng ký tool MCP.
- */
-static void RegisterMcpTools(void);
-
-/**
- * @brief Task xử lý MCP và WiFi watchdog.
- */
-static void McpTask(void *param);
-
-/**
- * @brief Task xử lý điều khiển động cơ.
- */
-static void MotorTask(void *param);
-
-/**
- * @brief Task xử lý điều khiển hồng ngoại.
- */
-static void IrTask(void *param);
+static void RegisterMcpTools(void); // Hàm đăng ký tool với MCP, được gọi khi kết nối MCP thành công.
+static void McpTask(void *param);	// Quản lý WiFi, WebSocket MCP và watchdog.
+static void MotorTask(void *param); // xử lý lệnh điều khiển động cơ
+static void IrTask(void *param);    // phát tín hiệu hồng ngoại
 
 /**
  * @brief Đẩy lệnh motor vào hàng đợi.
@@ -86,7 +42,7 @@ static bool QueueMotorCmd(MotorCmd cmd)
 
 	if (cmd == MOTOR_CMD_STOP)
 	{
-		xQueueReset(motorCmdQueue);
+		xQueueReset(motorCmdQueue); // xóa toàn bộ command cũ khi dùng STOP
 	}
 
 	return xQueueSend(motorCmdQueue, &cmd, 0) == pdTRUE;
@@ -338,21 +294,21 @@ void Tasks_Init(void)
 	{
 		Serial.println("[WIFI] Failed");
 		delay(3000);
-		ESP.restart();
+		ESP.restart(); // watchdog sẽ khởi động lại nếu không kết nối được WiFi sau 3 giây
 	}
 
 	Serial.println("[WIFI] Connected");
 	Serial.println("[WIFI] IP: " + WiFi.localIP().toString());
 	Serial.println("=================================");
 
-	motorCmdQueue = xQueueCreate(MOTOR_CMD_QUEUE_SIZE, sizeof(MotorCmd));
-	irCmdQueue = xQueueCreate(IR_CMD_QUEUE_SIZE, sizeof(IrCmd));
+	motorCmdQueue = xQueueCreate(MOTOR_CMD_QUEUE_SIZE, sizeof(MotorCmd)); 	// queue chứa tối đa 5 phần tử
+	irCmdQueue = xQueueCreate(IR_CMD_QUEUE_SIZE, sizeof(IrCmd));			 // queue chứa tối đa 5 phần tử
 
 	if (motorCmdQueue == nullptr || irCmdQueue == nullptr)
 	{
 		Serial.println("[QUEUE] Create failed");
 		delay(1000);
-		ESP.restart();
+		ESP.restart(); // watchdog sẽ khởi động lại nếu không tạo được queue sau 1 giây
 	}
 
 	mcpClient.begin(MCP_ENDPOINT, OnConnectionStatus);
@@ -360,12 +316,12 @@ void Tasks_Init(void)
 
 	xTaskCreatePinnedToCore(McpTask, "mcpTask", MCP_TASK_STACK, nullptr,
 							MCP_TASK_PRIORITY, &mcpTaskHandle,
-							MCP_TASK_CORE);
+							MCP_TASK_CORE); // Tạo task quản lý MCP và watchdog trên core 0
 	xTaskCreatePinnedToCore(MotorTask, "motorTask", MOTOR_TASK_STACK,
 							nullptr, MOTOR_TASK_PRIORITY, &motorTaskHandle,
-							MOTOR_TASK_CORE);
+							MOTOR_TASK_CORE); // Tạo task xử lý động cơ trên core 1
 	xTaskCreatePinnedToCore(IrTask, "irTask", IR_TASK_STACK, nullptr,
-							IR_TASK_PRIORITY, &irTaskHandle, IR_TASK_CORE);
+							IR_TASK_PRIORITY, &irTaskHandle, IR_TASK_CORE); // Tạo task xử lý IR trên core 1
 }
 
 /**
@@ -438,8 +394,8 @@ static void MotorTask_StopAll(void)
  * @brief Xử lý lệnh motor và thiết lập thời gian chạy.
  */
 static void MotorTask_ApplyCmd(MotorCmd cmd, bool *active,
-						   TickType_t *remainingTicks, bool *autoSwing,
-						   int8_t *autoDirection)
+							   TickType_t *remainingTicks, bool *autoSwing,
+							   int8_t *autoDirection)
 {
 	MotorTask_StopAll();
 	*active = false;
@@ -496,39 +452,39 @@ static void MotorTask(void *param)
 {
 	MotorCmd cmd = MOTOR_CMD_STOP;
 	bool active = false;
-	bool autoSwing = false;
+	bool autoSwing = false; // có đang auto quay quạt không 
 	int8_t autoDirection = FAN_SWING_CENTER;
-	TickType_t remainingTicks = 0;
+	TickType_t remainingTicks = 0; // còn bao nhiêu thời gian trước khi stop
 	const TickType_t stepTicks = pdMS_TO_TICKS(MOTOR_STEP_CHECK_MS);
 
 	for (;;)
 	{
-		if (!active)
+		if (!active) // motor đang rảnh
 		{
 			if (xQueueReceive(motorCmdQueue, &cmd, portMAX_DELAY) ==
-				pdTRUE)
+				pdTRUE) // Task sẽ Block cho đến khi có dữ liệu (nhận diện giọng nói từ MCP task sẽ gửi lệnh vào queue và MotorTask sẽ nhận được ngay lập tức)
 			{
 				MotorTask_ApplyCmd(cmd, &active,
-							   &remainingTicks, &autoSwing,
-							   &autoDirection);
+								   &remainingTicks, &autoSwing,
+								   &autoDirection); // 
 			}
-			continue;
+			continue; // quay lại vòng lặp
 		}
 
+		// motor đang hoạt động
 		if (xQueueReceive(motorCmdQueue, &cmd, 0) == pdTRUE)
 		{
 			MotorTask_ApplyCmd(cmd, &active, &remainingTicks,
-						   &autoSwing, &autoDirection);
-			continue;
+							   &autoSwing, &autoDirection);
+			continue; // quay lại về vòng lặp
 		}
 
-		if (remainingTicks <= stepTicks)
+		if (remainingTicks <= stepTicks) // nếu không có lệnh mới
 		{
-			if (autoSwing)
+			if (autoSwing) // nếu đang ở chế độ quay tự động thì đổi chiều quay
 			{
 				autoDirection =
-					(autoDirection == FAN_SWING_LEFT) ?
-					FAN_SWING_RIGHT : FAN_SWING_LEFT;
+					(autoDirection == FAN_SWING_LEFT) ? FAN_SWING_RIGHT : FAN_SWING_LEFT;
 				if (autoDirection == FAN_SWING_LEFT)
 				{
 					Motor_FanSwing_Left();

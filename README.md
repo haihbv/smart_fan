@@ -29,6 +29,24 @@ sequenceDiagram
     AI-->>User: 10. Phát giọng nói: "Đã bật quạt cho bạn!"
 ```
 
+### Luồng xử lý nội bộ trên ESP32
+
+```mermaid
+flowchart TD
+    A[AI/MCP Server]
+    B[WebSocket MCP]
+    C[McpTask]
+    D[QueueMotorCmd()\nQueueIrCmd()]
+    E[motorCmdQueue]
+    F[irCmdQueue]
+    G[MotorTask]
+    H[IrTask]
+
+    A --> B --> C --> D
+    D --> E --> G
+    D --> F --> H
+```
+
 ---
 
 ## Giao Thức MCP - Model Context Protocol Là Gì?
@@ -98,24 +116,32 @@ Lần đầu khởi động, nếu ESP32 chưa từng kết nối WiFi hoặc kh
 
 ---
 
+## Cơ Chế Ổn Định & Watchdog
+
+- **MCP watchdog**: nếu ESP32 mất kết nối MCP quá thời gian cấu hình, hệ thống tự khởi động lại để phục hồi.
+- **WiFi reconnect**: kiểm tra kết nối định kỳ và tự động reconnect khi bị rớt mạng.
+
+---
+
 ## Tập Lệnh Điều Khiển Thử Nghiệm
 
 Dưới đây là một số khẩu lệnh phổ biến đã được kiểm thử và hoạt động trơn tru:
 
 ### Điều khiển quạt hồng ngoại 
 
-- "Bật quạt" / "Mở quạt": Bật nguồn quạt hồng ngoại.
-- "Tắt quạt": Tắt nguồn quạt.
-- "Tăng tốc quạt" / "Đổi tốc độ quạt": Chuyển đổi qua lại các cấp tốc độ từ 1 đến 8.
-- "Xoay qua lại" / "Lắc quạt": Bắt đầu xoay tự động bằng động cơ.
+- "Bật quạt" / "Mở quạt": gọi `fan_control` với `action=power_on` (chỉ gửi khi đang nghĩ quạt tắt).
+- "Tắt quạt": gọi `fan_control` với `action=power_off` (chỉ gửi khi đang nghĩ quạt bật).
+- "Tăng tốc quạt" / "Đổi tốc độ quạt": gọi `fan_control` với `action=next_speed` (chỉ khi đang bật).
+- "Xoay qua lại" / "Lắc quạt": gọi `fan_control` với `action=swing_auto`.
+    - Nhịp xoay: trái 2.5s trước, sau đó đổi hướng mỗi 5s.
 
 ### Điều khiển động cơ
 
-- "Đi thẳng" / "Tiến lên": Di chuyển thẳng về phía trước trong 5 giây rồi tự động dừng lại.
-- "Đi lùi" / "Lùi lại": Di chuyển lùi về phía sau trong 5 giây rồi tự động dừng lại.
-- "Rẽ trái" / "Quay trái": Rẽ sang trái trong 2 giây rồi tự động dừng lại.
-- "Rẽ phải" / "Quay phải": Rẽ sang phải trong 2 giây rồi tự động dừng lại.
-- "Dừng lại" / "Đứng yên": Dừng khẩn cấp toàn bộ động cơ ngay lập tức (bao gồm xoay quạt).
+- "Đi thẳng" / "Tiến lên": gọi `car_control` với `action=forward` (chạy 5s rồi dừng).
+- "Đi lùi" / "Lùi lại": gọi `car_control` với `action=backward` (chạy 5s rồi dừng).
+- "Rẽ trái" / "Quay trái": gọi `car_control` với `action=left` (rẽ 2s rồi dừng).
+- "Rẽ phải" / "Quay phải": gọi `car_control` với `action=right` (rẽ 2s rồi dừng).
+- "Dừng lại" / "Đứng yên": gọi `car_control` với `action=stop` để dừng ngay và xóa hàng đợi lệnh (bao gồm xoay quạt).
 
 ## Tài liệu tham khảo
 
