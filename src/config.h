@@ -7,9 +7,9 @@
 // MCP CONFIG
 // ============================================================================
 
-#define MCP_ENDPOINT "..."       ///< MCP WebSocket endpoint
-#define WIFI_AP_SSID "SMART FAN" ///< WiFi AP SSID
-#define WIFI_AP_PASS "66668888"  ///< WiFi AP password
+#define MCP_ENDPOINT "wss://api.xiaozhi.me/mcp/?token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjkzMzM5OCwiYWdlbnRJZCI6MTg0OTYzNiwiZW5kcG9pbnRJZCI6ImFnZW50XzE4NDk2MzYiLCJwdXJwb3NlIjoibWNwLWVuZHBvaW50IiwiaWF0IjoxNzc5MTcxMDMzLCJleHAiOjE4MTA3Mjg2MzN9.cVNymqwvIwCBSmppU65Z3nJ38Y_C-YNcgIpbBgqzpOiJSFRwtYvtbOnq3b3PmiFtVuT7ez9vHXPVpz-b5LctPA" ///< MCP WebSocket endpoint
+#define WIFI_AP_SSID "SMART FAN"                                                                                                                                                                                                                                                                                                                        ///< WiFi AP SSID
+#define WIFI_AP_PASS "66668888"                                                                                                                                                                                                                                                                                                                         ///< WiFi AP password
 
 #define WIFI_RECONNECT_INTERVAL_MS 5000 ///< WiFi reconnect interval
 #define MCP_WATCHDOG_TIMEOUT_MS 60000   ///< MCP watchdog timeout
