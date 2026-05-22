@@ -107,6 +107,7 @@ Dưới đây là một số khẩu lệnh phổ biến đã được kiểm th�
 - "Bật quạt" / "Mở quạt": Bật nguồn quạt hồng ngoại.
 - "Tắt quạt": Tắt nguồn quạt.
 - "Tăng tốc quạt" / "Đổi tốc độ quạt": Chuyển đổi qua lại các cấp tốc độ từ 1 đến 8.
+- "Xoay qua lại" / "Lắc quạt": Bắt đầu xoay tự động bằng động cơ.
 
 ### Điều khiển động cơ
 
@@ -114,16 +115,9 @@ Dưới đây là một số khẩu lệnh phổ biến đã được kiểm th�
 - "Đi lùi" / "Lùi lại": Di chuyển lùi về phía sau trong 5 giây rồi tự động dừng lại.
 - "Rẽ trái" / "Quay trái": Rẽ sang trái trong 2 giây rồi tự động dừng lại.
 - "Rẽ phải" / "Quay phải": Rẽ sang phải trong 2 giây rồi tự động dừng lại.
-- "Dừng lại" / "Đứng yên": Dừng khẩn cấp toàn bộ động cơ ngay lập tức.
+- "Dừng lại" / "Đứng yên": Dừng khẩn cấp toàn bộ động cơ ngay lập tức (bao gồm xoay quạt).
 
 ## Tài liệu tham khảo
 
 - [Model Context Protocol](https://modelcontextprotocol.io)
 - [MCP GitHub](https://github.com/modelcontextprotocol)
-
-- [ESP32 Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
-- [ESP32 Official Page](https://www.espressif.com/en/products/socs/esp32)
-
-- [WiFiManager](https://github.com/tzapu/WiFiManager)
-- [ArduinoJson](https://github.com/bblanchon/ArduinoJson)
-- [IRremoteESP8266](https://github.com/crankyoldgit/IRremoteESP8266)
