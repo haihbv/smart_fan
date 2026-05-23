@@ -24,11 +24,31 @@ static TaskHandle_t irTaskHandle = nullptr;
 static bool mcpToolsRegistered = false;
 static bool mcpConnected = false;
 static TickType_t lastMcpOkTick = 0; // Thời điểm cuối MCP còn kết nối tốt.
-static bool fanPowerOn = false;
+enum FanPowerState
+{
+	FAN_POWER_UNKNOWN = 0,
+	FAN_POWER_OFF,
+	FAN_POWER_ON
+};
+
+static FanPowerState fanPowerState = FAN_POWER_UNKNOWN;
 static void RegisterMcpTools(void); // Hàm đăng ký tool với MCP, được gọi khi kết nối MCP thành công.
 static void McpTask(void *param);	// Quản lý WiFi, WebSocket MCP và watchdog.
 static void MotorTask(void *param); // xử lý lệnh điều khiển động cơ
 static void IrTask(void *param);    // phát tín hiệu hồng ngoại
+
+static const char *FanPowerStateToString(FanPowerState state)
+{
+	switch (state)
+	{
+	case FAN_POWER_OFF:
+		return "off";
+	case FAN_POWER_ON:
+		return "on";
+	default:
+		return "unknown";
+	}
+}
 
 /**
  * @brief Đẩy lệnh motor vào hàng đợi.
@@ -73,6 +93,7 @@ static void OnConnectionStatus(bool connected)
 	else
 	{
 		mcpToolsRegistered = false;
+		fanPowerState = FAN_POWER_UNKNOWN;
 		Motor_Stop();
 		Motor_FanSwing_Stop();
 		Serial.println("[MCP] Disconnected");
@@ -95,6 +116,7 @@ static void RegisterMcpTools(void)
 		"Dieu khien quat hong ngoai bang IR. "
 		"power_on de bat quat. "
 		"power_off de tat quat. "
+		"power_toggle de dao trang thai on/off khi can dong bo lai. "
 		"next_speed de chuyen sang muc quat tiep theo. "
 		"swing_auto de bat xoay tu dong.",
 		"{\"type\":\"object\","
@@ -103,8 +125,10 @@ static void RegisterMcpTools(void)
 		"\"action\":{\"type\":\"string\",\"enum\":["
 		"\"power_on\","
 		"\"power_off\","
+		"\"power_toggle\","
 		"\"next_speed\","
-		"\"swing_auto\"]}"
+		"\"swing_auto\"]},"
+		"\"force\":{\"type\":\"boolean\"}"
 		"},"
 		"\"required\":[\"device\",\"action\"]}",
 		[](const String &args) -> WebSocketMCP::ToolResponse
@@ -121,6 +145,7 @@ static void RegisterMcpTools(void)
 
 			String device = doc["device"].as<String>();
 			String action = doc["action"].as<String>();
+			bool force = doc["force"].isNull() ? false : doc["force"].as<bool>();
 			bool shouldQueue = false;
 			bool queued = false;
 
@@ -131,35 +156,44 @@ static void RegisterMcpTools(void)
 					"device\"}");
 			}
 
-			if (action == "power_on")
+			if (action == "power_on" || action == "power_off")
 			{
-				if (!fanPowerOn)
+				bool desiredOn = (action == "power_on");
+				bool stateKnown = (fanPowerState != FAN_POWER_UNKNOWN);
+				bool already = stateKnown &&
+							   ((fanPowerState == FAN_POWER_ON) == desiredOn);
+
+				if (!already || force || !stateKnown)
 				{
 					shouldQueue = true;
 					queued = QueueIrCmd(IR_CMD_POWER_TOGGLE);
 					if (queued)
 					{
-						fanPowerOn = true;
-						Serial.println("[FAN] POWER ON");
+						fanPowerState = desiredOn ? FAN_POWER_ON : FAN_POWER_OFF;
+						Serial.println(desiredOn ? "[FAN] POWER ON" : "[FAN] POWER OFF");
 					}
 				}
 			}
-			else if (action == "power_off")
+			else if (action == "power_toggle")
 			{
-				if (fanPowerOn)
+				shouldQueue = true;
+				queued = QueueIrCmd(IR_CMD_POWER_TOGGLE);
+				if (queued)
 				{
-					shouldQueue = true;
-					queued = QueueIrCmd(IR_CMD_POWER_TOGGLE);
-					if (queued)
+					if (fanPowerState == FAN_POWER_ON)
 					{
-						fanPowerOn = false;
-						Serial.println("[FAN] POWER OFF");
+						fanPowerState = FAN_POWER_OFF;
 					}
+					else if (fanPowerState == FAN_POWER_OFF)
+					{
+						fanPowerState = FAN_POWER_ON;
+					}
+					Serial.println("[FAN] POWER TOGGLE");
 				}
 			}
 			else if (action == "next_speed")
 			{
-				if (fanPowerOn)
+				if (fanPowerState != FAN_POWER_OFF)
 				{
 					shouldQueue = true;
 					queued = QueueIrCmd(IR_CMD_NEXT_SPEED);
@@ -202,7 +236,7 @@ static void RegisterMcpTools(void)
 				String(queued ? "true" : "false") +
 				","
 				"\"power\":\"" +
-				String(fanPowerOn ? "on" : "off") + "\"}");
+				String(FanPowerStateToString(fanPowerState)) + "\"}");
 		});
 
 	Serial.println("[MCP] Fan tool registered");
