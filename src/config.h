@@ -42,7 +42,8 @@
 #define MOTOR_SPEED_TURN 220 ///< Turn speed
 
 #define MOVE_DURATION_MS 5000 ///< Move duration
-#define TURN_DURATION_MS 2000 ///< Turn duration
+// #define TURN_DURATION_MS 2000 ///< Turn duration
+#define TURN_DURATION_MS 330 // quay 15 độ
 
 #define FAN_SWING_STEP_MS 2500   ///< Swing step time
 #define FAN_SWING_RETURN_MS 5000 ///< Swing return time

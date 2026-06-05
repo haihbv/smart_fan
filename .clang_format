@@ -1,73 +1,30 @@
-# .clang-format — Linux Kernel coding style
-# Ref: https://www.kernel.org/doc/html/latest/process/coding-style.html
-# clang-format version: 14+
-
----
-BasedOnStyle: LLVM
-
-# Indentation
-IndentWidth: 8
-TabWidth: 8
-UseTab: ForIndentation
-ContinuationIndentWidth: 8
-
-# Line length
-ColumnLimit: 80
-
-# Braces
-BreakBeforeBraces: Linux
-
-# Spaces
-SpaceBeforeParens: ControlStatements
-SpaceInEmptyParentheses: false
-SpacesInContainerLiterals: false
-SpaceAfterCStyleCast: false
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeRangeBasedForLoopColon: true
-
-# Alignment
-AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: false
-AlignConsecutiveDeclarations: false
-AlignEscapedNewlines: Left
-AlignOperands: true
-AlignTrailingComments: false
-
-# Pointer and reference alignment
-PointerAlignment: Right
-ReferenceAlignment: Right
-DerivePointerAlignment: false
-
-# Comments
-ReflowComments: false
-SpacesBeforeTrailingComments: 1
-
-# Function declarations / calls
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 120
 AllowShortFunctionsOnASingleLine: None
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLoopsOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortBlocksOnASingleLine: Never
-
-# Breaking
-BinPackArguments: true
-BinPackParameters: true
-BreakBeforeBinaryOperators: None
-BreakBeforeTernaryOperators: false
-BreakStringLiterals: false
-
-# Include sorting
-SortIncludes: false
-
-# Preprocessor
-IndentPPDirectives: None
-
-# Empty lines
-MaxEmptyLinesToKeep: 1
 KeepEmptyLinesAtTheStartOfBlocks: false
-
-# Misc
-Cpp11BracedListStyle: false
-SortUsingDeclarations: false
-CompactNamespaces: false
-...
+ObjCBlockIndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: false
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+IncludeCategories:
+  - Regex:           '^<.*'
+    Priority:        1
+  - Regex:           '.*'
+    Priority:        2
+SortIncludes: true
+SpaceAfterCStyleCast: true
+SpaceBeforeParens: ControlStatements
